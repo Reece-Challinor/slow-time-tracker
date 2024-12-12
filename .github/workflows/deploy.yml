@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   schedule:
     - cron: '0 0 * * *'  # Daily at midnight
+  workflow_dispatch:      # Allow manual triggers
 
 jobs:
   deploy:
@@ -18,10 +19,20 @@ jobs:
       with:
         python-version: '3.x'
     
+    - name: Cache pip packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+    
+    - name: Run tests
+      run: python -m pytest tests/
     
     - name: Build static site
       run: python freeze.py
@@ -31,5 +42,10 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
-        S3_BUCKET: ${{ secrets.S3_BUCKET }}
-      run: python deploy.py
+        S3_BUCKET: thetimeyouhaveleft.com
+      run: |
+        python scripts/deploy_s3.py
+        
+    - name: Invalidate CloudFront
+      run: |
+        aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"

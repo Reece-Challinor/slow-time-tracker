@@ -1,8 +1,23 @@
 from flask import Flask, render_template_string, request
 from datetime import datetime
 import math
+from flask import Flask, render_template_string, request, jsonify
+import logging
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@app.errorhandler(500)
+def handle_server_error(error):
+    logger.error(f"Internal error: {error}")
+    return jsonify(error="An internal error occurred"), 500
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    return render_template_string("404.html"), 404
 
 def calculate_life_expectancy(age, bmi, smoker, country):
     # Basic life expectancy calculation
