@@ -1,3 +1,7 @@
+"""
+Freezes the Flask application into static files.
+"""
+
 from flask_frozen import Freezer
 from app import app
 

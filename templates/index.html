@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Time You Have Left</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>The Time You Have Left</h1>
+        
+        <form method="POST" class="input-form">
+            <div class="form-group">
+                <label for="age">Your age:</label>
+                <input type="number" name="age" id="age" required min="0" max="120">
+            </div>
+            
+            <div class="form-group">
+                <label for="gender">Gender:</label>
+                <select name="gender" id="gender">
+                    <option value="neutral">Prefer not to say</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="bmi">BMI:</label>
+                <input type="number" name="bmi" id="bmi" step="0.1" value="22">
+            </div>
+            
+            <div class="form-group">
+                <label for="smoker">Smoker:</label>
+                <select name="smoker" id="smoker">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                </select>
+            </div>
+            
+            <button type="submit">Calculate Time Remaining</button>
+        </form>
+
+        {% if visualization %}
+        <div class="visualization">
+            <pre>{{ visualization }}</pre>
+        </div>
+        {% endif %}
+
+        {% if time_data %}
+        <div class="statistics">
+            <h2>Your Time Remaining</h2>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <h3>Years</h3>
+                    <p>{{ time_data.remaining.years }}</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Months</h3>
+                    <p>{{ time_data.remaining.months }}</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Weeks</h3>
+                    <p>{{ time_data.remaining.weeks }}</p>
+                </div>
+            </div>
+            
+            <h2>Time Allocation</h2>
+            <div class="allocation-grid">
+                <div class="allocation-box">
+                    <h3>Free Time</h3>
+                    <p>{{ time_data.allocation.free_time_years }} years</p>
+                    <p>{{ time_data.allocation.free_time_months }} months</p>
+                </div>
+                <div class="allocation-box">
+                    <h3>Sleep</h3>
+                    <p>{{ time_data.allocation.sleep_years }} years</p>
+                </div>
+                <div class="allocation-box">
+                    <h3>Work</h3>
+                    <p>{{ time_data.allocation.work_years }} years</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="philosophy">
+            <h2>Understanding Your Time</h2>
+            <blockquote>
+                "Time is the most valuable thing a man can spend." - Theophrastus
+            </blockquote>
+            <p>This visualization represents your life in months. Each filled circle (●) represents a month lived, while each empty circle (○) represents a potential month remaining.</p>
+            <p>The average person has about 80,000 hours of truly discretionary time in their life. How will you spend yours?</p>
+        </div>
+    </div>
+</body>
+</html>
