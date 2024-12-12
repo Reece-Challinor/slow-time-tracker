@@ -3,6 +3,8 @@ from datetime import datetime
 import math
 from flask import Flask, render_template_string, request, jsonify
 import logging
+from visualizations.bar_graph import generate_bar_graph
+from visualizations.histogram import generate_histogram
 
 app = Flask(__name__)
 
