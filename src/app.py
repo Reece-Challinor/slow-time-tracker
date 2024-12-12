@@ -1,57 +1,44 @@
 from flask import Flask, render_template_string, request
 from datetime import datetime
 import math
-from flask import Flask, render_template_string, request, jsonify
-import logging
-from visualizations.bar_graph import generate_bar_graph
-from visualizations.histogram import generate_histogram
 
 app = Flask(__name__)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-@app.errorhandler(500)
-def handle_server_error(error):
-    logger.error(f"Internal error: {error}")
-    return jsonify(error="An internal error occurred"), 500
-
-@app.errorhandler(404)
-def handle_not_found(error):
-    return render_template_string("404.html"), 404
-
 def calculate_life_expectancy(age, bmi, smoker, country):
-    # Basic life expectancy calculation
-    # Based on simplified actuarial data
+    # Basic life expectancy calculation based on simplified actuarial data
     base_expectancy = 78.0  # US/Canada base
     
-    # BMI adjustment
+    # BMI adjustment - normal BMI range gives a small boost
     if 18.5 <= bmi <= 24.9:
         bmi_adj = 2.0
     elif 25 <= bmi <= 29.9:
         bmi_adj = 0
     else:
         bmi_adj = -2.0
-        
-    # Smoking adjustment
+    
+    # Smoking creates a significant reduction in life expectancy
     smoker_adj = -10 if smoker else 0
     
-    # Calculate remaining years
+    # Calculate total remaining years
     total_expectancy = base_expectancy + bmi_adj + smoker_adj
     remaining_years = total_expectancy - age
     
     return max(remaining_years, 0)
 
 def generate_dot_matrix(age, remaining_years):
+    # Calculate total months and months lived
     total_months = int((age + remaining_years) * 12)
     months_lived = int(age * 12)
     months_per_row = 12
     
     visualization = []
+    # Generate rows of dots, 12 months per row
     for i in range(0, total_months, months_per_row):
         row = []
         for j in range(months_per_row):
+            if i + j >= total_months:
+                break
+            # Filled circle for lived months, empty circle for remaining
             if i + j < months_lived:
                 row.append("●")
             else:
@@ -61,15 +48,18 @@ def generate_dot_matrix(age, remaining_years):
     return "\n".join(visualization)
 
 def generate_bar_graph(age, remaining_years):
+    # Calculate total lifespan and decades needed
     total_years = int(age + remaining_years)
     decades = math.ceil(total_years / 10)
     
     visualization = []
+    # Create bar graph by decades
     for decade in range(decades):
         start_year = decade * 10
         end_year = min(start_year + 10, total_years)
         bar = ""
         for year in range(start_year, end_year):
+            # Solid block for lived years, outline for remaining
             if year < age:
                 bar += "█"
             else:
@@ -83,7 +73,7 @@ def generate_histogram(age, remaining_years):
     max_height = 10
     histogram = []
     
-    # Simplified life phases
+    # Define major life phases
     phases = [
         ("Childhood", 0, 18),
         ("Early Adult", 18, 30),
@@ -92,14 +82,17 @@ def generate_histogram(age, remaining_years):
         ("Elder", 70, total_years)
     ]
     
+    # Generate histogram for each life phase
     for phase_name, start, end in phases:
         phase_length = end - start
         filled_years = max(0, min(age - start, phase_length))
         remaining = max(0, min(phase_length - filled_years, phase_length))
         
+        # Calculate proportional heights
         bar_height = int((phase_length / total_years) * max_height)
         filled_height = int((filled_years / phase_length) * bar_height)
         
+        # Generate vertical bars
         for h in range(bar_height-1, -1, -1):
             if h < filled_height:
                 histogram.append(f"{phase_name:12} |{'█' * bar_height}")
@@ -114,7 +107,7 @@ TEMPLATE = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>How Much Is Left?</title>
+    <title>The Time You Have Left</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -195,16 +188,16 @@ TEMPLATE = '''
     </style>
 </head>
 <body>
-    <h1>How Much Is Left?</h1>
+    <h1>The Time You Have Left</h1>
     
     <div class="watch">
         ⌚ {{ current_time }}
     </div>
     
-    <form method="POST">
+    <form method="POST" action="/">
         <div>
             <label for="age">Your current age:</label>
-            <input type="number" name="age" id="age" required min="0" max="100" value="{{ age if age else '' }}">
+            <input type="number" name="age" id="age" required min="0" max="100" step="1" value="{{ age if age else '' }}">
         </div>
         <div>
             <label for="bmi">BMI:</label>
@@ -213,14 +206,14 @@ TEMPLATE = '''
         <div>
             <label for="smoker">Do you smoke?</label>
             <select name="smoker" id="smoker">
-                <option value="0" {% if not smoker %}selected{% endif %}>No</option>
-                <option value="1" {% if smoker %}selected{% endif %}>Yes</option>
+                <option value="0">No</option>
+                <option value="1">Yes</option>
             </select>
         </div>
         <button type="submit">Generate Visualization</button>
     </form>
 
-    {% if visualization %}
+    {% if matrix %}
     <div class="tabs">
         <button class="tab active" onclick="showViz('matrix')">Dot Matrix</button>
         <button class="tab" onclick="showViz('bar')">Bar Graph</button>
@@ -228,15 +221,15 @@ TEMPLATE = '''
     </div>
     
     <div class="visualization" id="matrix-viz">
-{{ matrix }}
+        <pre>{{ matrix }}</pre>
     </div>
     
     <div class="visualization" id="bar-viz" style="display: none;">
-{{ bar }}
+        <pre>{{ bar }}</pre>
     </div>
     
     <div class="visualization" id="histogram-viz" style="display: none;">
-{{ histogram }}
+        <pre>{{ histogram }}</pre>
     </div>
     {% endif %}
 
@@ -290,15 +283,19 @@ def index():
     histogram = None
     
     if request.method == "POST":
-        age = float(request.form.get("age", 0))
-        bmi = float(request.form.get("bmi", 0))
-        smoker = bool(int(request.form.get("smoker", 0)))
-        
-        remaining_years = calculate_life_expectancy(age, bmi, smoker, "US")
-        
-        matrix = generate_dot_matrix(age, remaining_years)
-        bar = generate_bar_graph(age, remaining_years)
-        histogram = generate_histogram(age, remaining_years)
+        try:
+            age = float(request.form.get("age", 0))
+            bmi = float(request.form.get("bmi", 0))
+            smoker = bool(int(request.form.get("smoker", 0)))
+            
+            remaining_years = calculate_life_expectancy(age, bmi, smoker, "US")
+            
+            matrix = generate_dot_matrix(age, remaining_years)
+            bar = generate_bar_graph(age, remaining_years)
+            histogram = generate_histogram(age, remaining_years)
+            
+        except Exception as e:
+            print(f"Error processing form: {e}")
     
     return render_template_string(
         TEMPLATE,
@@ -308,7 +305,7 @@ def index():
         matrix=matrix,
         bar=bar,
         histogram=histogram,
-        current_time=datetime.now().strftime("%H:%M"),
+        current_time=datetime.now().strftime("%H:%M")
     )
 
 if __name__ == "__main__":
