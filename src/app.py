@@ -4,76 +4,82 @@ import math
 
 app = Flask(__name__)
 
-def calculate_life_expectancy(age, bmi, smoker, country):
-    # Basic life expectancy calculation based on simplified actuarial data
+def calculate_life_expectancy(age, bmi, smoker):
+    """
+    Calculate the remaining life expectancy based on age, BMI, and smoking status.
+
+    Parameters:
+    age (float): The current age of the person.
+    bmi (float): The Body Mass Index of the person.
+    smoker (bool): Whether the person is a smoker.
+
+    Returns:
+    float: The remaining years of life expectancy.
+    """
     base_expectancy = 78.0  # US/Canada base
-    
-    # BMI adjustment - normal BMI range gives a small boost
-    if 18.5 <= bmi <= 24.9:
+def calculate_life_expectancy(age, bmi, smoker):
+    """
+    Calculate the remaining life expectancy based on age, BMI, and smoking status.
+
+    Parameters:
+    age (float): The current age of the person.
+    bmi (float): The Body Mass Index of the person.
+    smoker (bool): Whether the person is a smoker.
+
+    Returns:
+    float: The remaining years of life expectancy.
+    """
+    base_expectancy = 78.0  # US/Canada base
+    if bmi < 18.5:
+        bmi_adj = -2.0
+    elif 18.5 <= bmi <= 24.9:
         bmi_adj = 2.0
     elif 25 <= bmi <= 29.9:
         bmi_adj = 0
     else:
         bmi_adj = -2.0
-    
-    # Smoking creates a significant reduction in life expectancy
     smoker_adj = -10 if smoker else 0
-    
-    # Calculate total remaining years
     total_expectancy = base_expectancy + bmi_adj + smoker_adj
     remaining_years = total_expectancy - age
-    
     return max(remaining_years, 0)
 
 def generate_dot_matrix(age, remaining_years):
-    # Calculate total months and months lived
     total_months = int((age + remaining_years) * 12)
     months_lived = int(age * 12)
     months_per_row = 12
-    
     visualization = []
-    # Generate rows of dots, 12 months per row
     for i in range(0, total_months, months_per_row):
         row = []
         for j in range(months_per_row):
             if i + j >= total_months:
                 break
-            # Filled circle for lived months, empty circle for remaining
             if i + j < months_lived:
                 row.append("●")
-            else:
-                row.append("○")
-        visualization.append(f"{i//12 + 1:2d}: {' '.join(row)}")
-    
-    return "\n".join(visualization)
-
 def generate_bar_graph(age, remaining_years):
-    # Calculate total lifespan and decades needed
     total_years = int(age + remaining_years)
     decades = math.ceil(total_years / 10)
-    
     visualization = []
-    # Create bar graph by decades
     for decade in range(decades):
         start_year = decade * 10
-        end_year = min(start_year + 10, total_years)
+        end_year = start_year + 10
         bar = ""
         for year in range(start_year, end_year):
-            # Solid block for lived years, outline for remaining
             if year < age:
                 bar += "█"
             else:
                 bar += "░"
         visualization.append(f"{start_year:2d}-{end_year-1:2d}: {bar}")
-    
+    return "\n".join(visualization)
+                bar += "█"
+            else:
+                bar += "░"
+        visualization.append(f"{start_year:2d}-{end_year-1:2d}: {bar}")
     return "\n".join(visualization)
 
 def generate_histogram(age, remaining_years):
     total_years = int(age + remaining_years)
     max_height = 10
     histogram = []
-    
-    # Define major life phases
     phases = [
         ("Childhood", 0, 18),
         ("Early Adult", 18, 30),
@@ -81,24 +87,17 @@ def generate_histogram(age, remaining_years):
         ("Late Adult", 50, 70),
         ("Elder", 70, total_years)
     ]
-    
-    # Generate histogram for each life phase
     for phase_name, start, end in phases:
         phase_length = end - start
         filled_years = max(0, min(age - start, phase_length))
         remaining = max(0, min(phase_length - filled_years, phase_length))
-        
-        # Calculate proportional heights
         bar_height = int((phase_length / total_years) * max_height)
         filled_height = int((filled_years / phase_length) * bar_height)
-        
-        # Generate vertical bars
         for h in range(bar_height-1, -1, -1):
             if h < filled_height:
                 histogram.append(f"{phase_name:12} |{'█' * bar_height}")
             else:
                 histogram.append(f"{phase_name:12} |{'░' * bar_height}")
-    
     return "\n".join(histogram)
 
 TEMPLATE = '''
@@ -115,7 +114,6 @@ TEMPLATE = '''
             --accent-color: #404040;
             --highlight-color: #606060;
         }
-        
         body {
             font-family: monospace;
             background-color: var(--bg-color);
@@ -125,7 +123,6 @@ TEMPLATE = '''
             max-width: 900px;
             margin: 0 auto;
         }
-        
         .visualization {
             white-space: pre;
             margin: 2rem 0;
@@ -133,25 +130,21 @@ TEMPLATE = '''
             background-color: #222;
             border-radius: 4px;
         }
-        
         .philosophy {
             border-left: 3px solid var(--accent-color);
             padding-left: 1rem;
             margin: 2rem 0;
         }
-        
         .watch {
             text-align: center;
             font-size: 2rem;
             margin: 2rem 0;
         }
-        
         .tabs {
             display: flex;
             gap: 1rem;
             margin: 2rem 0;
         }
-        
         .tab {
             padding: 0.5rem 1rem;
             background-color: var(--accent-color);
@@ -159,17 +152,14 @@ TEMPLATE = '''
             color: var(--text-color);
             cursor: pointer;
         }
-        
         .tab.active {
             background-color: var(--highlight-color);
         }
-        
         form {
             margin: 2rem 0;
             display: grid;
             gap: 1rem;
         }
-        
         input, select, button {
             background: #333;
             color: var(--text-color);
@@ -177,7 +167,6 @@ TEMPLATE = '''
             padding: 0.5rem;
             margin: 0.5rem 0;
         }
-        
         .quote {
             font-style: italic;
             margin: 2rem 0;
@@ -189,11 +178,9 @@ TEMPLATE = '''
 </head>
 <body>
     <h1>The Time You Have Left</h1>
-    
     <div class="watch">
         ⌚ {{ current_time }}
     </div>
-    
     <form method="POST" action="/">
         <div>
             <label for="age">Your current age:</label>
@@ -212,55 +199,44 @@ TEMPLATE = '''
         </div>
         <button type="submit">Generate Visualization</button>
     </form>
-
     {% if matrix %}
     <div class="tabs">
         <button class="tab active" onclick="showViz('matrix')">Dot Matrix</button>
         <button class="tab" onclick="showViz('bar')">Bar Graph</button>
         <button class="tab" onclick="showViz('histogram')">Histogram</button>
     </div>
-    
     <div class="visualization" id="matrix-viz">
         <pre>{{ matrix }}</pre>
     </div>
-    
     <div class="visualization" id="bar-viz" style="display: none;">
         <pre>{{ bar }}</pre>
     </div>
-    
     <div class="visualization" id="histogram-viz" style="display: none;">
         <pre>{{ histogram }}</pre>
     </div>
     {% endif %}
-
     <div class="philosophy">
         <h2>Understanding Your Time</h2>
-        
         <div class="quote">
             "The bad news is time flies. The good news is you're the pilot." - Michael Altshuler
         </div>
-        
         <p>This visualization represents your life in discrete units of time. Each marker is a month of potential - either spent or yet to be lived.</p>
-        
         <h3>The Time You Have</h3>
         <ul>
             <li>Average person has about 80,000 hours of discretionary time</li>
             <li>That's roughly 1,000 months or 4,000 weeks</li>
             <li>About 25,000 days of consciousness</li>
         </ul>
-        
         <h3>Weekly Reflection Points</h3>
         <ul>
             <li>How are you investing your remaining time?</li>
             <li>What would your future self thank you for doing now?</li>
             <li>Are your daily actions aligned with your life's goals?</li>
         </ul>
-        
         <p class="quote">
             "Time is what we want most, but what we use worst." - William Penn
         </p>
     </div>
-
     <script>
         function showViz(type) {
             document.querySelectorAll('.visualization').forEach(v => v.style.display = 'none');
@@ -281,22 +257,17 @@ def index():
     matrix = None
     bar = None
     histogram = None
-    
     if request.method == "POST":
         try:
             age = float(request.form.get("age", 0))
             bmi = float(request.form.get("bmi", 0))
             smoker = bool(int(request.form.get("smoker", 0)))
-            
             remaining_years = calculate_life_expectancy(age, bmi, smoker, "US")
-            
             matrix = generate_dot_matrix(age, remaining_years)
             bar = generate_bar_graph(age, remaining_years)
             histogram = generate_histogram(age, remaining_years)
-            
         except Exception as e:
             print(f"Error processing form: {e}")
-    
     return render_template_string(
         TEMPLATE,
         age=age,
