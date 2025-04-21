@@ -4,7 +4,7 @@ import math
 
 app = Flask(__name__)
 
-def calculate_life_expectancy(age, bmi, smoker):
+def calculate_life_expectancy(age, bmi, smoker, region="US"):
     """
     Calculate the remaining life expectancy based on age, BMI, and smoking status.
 
@@ -12,19 +12,7 @@ def calculate_life_expectancy(age, bmi, smoker):
     age (float): The current age of the person.
     bmi (float): The Body Mass Index of the person.
     smoker (bool): Whether the person is a smoker.
-
-    Returns:
-    float: The remaining years of life expectancy.
-    """
-    base_expectancy = 78.0  # US/Canada base
-def calculate_life_expectancy(age, bmi, smoker):
-    """
-    Calculate the remaining life expectancy based on age, BMI, and smoking status.
-
-    Parameters:
-    age (float): The current age of the person.
-    bmi (float): The Body Mass Index of the person.
-    smoker (bool): Whether the person is a smoker.
+    region (str): The geographic region for base expectancy.
 
     Returns:
     float: The remaining years of life expectancy.
@@ -55,6 +43,11 @@ def generate_dot_matrix(age, remaining_years):
                 break
             if i + j < months_lived:
                 row.append("●")
+            else:
+                row.append("○")
+        visualization.append("".join(row))
+    return "\n".join(visualization)
+
 def generate_bar_graph(age, remaining_years):
     total_years = int(age + remaining_years)
     decades = math.ceil(total_years / 10)
@@ -65,11 +58,6 @@ def generate_bar_graph(age, remaining_years):
         bar = ""
         for year in range(start_year, end_year):
             if year < age:
-                bar += "█"
-            else:
-                bar += "░"
-        visualization.append(f"{start_year:2d}-{end_year-1:2d}: {bar}")
-    return "\n".join(visualization)
                 bar += "█"
             else:
                 bar += "░"
@@ -92,12 +80,15 @@ def generate_histogram(age, remaining_years):
         filled_years = max(0, min(age - start, phase_length))
         remaining = max(0, min(phase_length - filled_years, phase_length))
         bar_height = int((phase_length / total_years) * max_height)
-        filled_height = int((filled_years / phase_length) * bar_height)
-        for h in range(bar_height-1, -1, -1):
-            if h < filled_height:
-                histogram.append(f"{phase_name:12} |{'█' * bar_height}")
-            else:
-                histogram.append(f"{phase_name:12} |{'░' * bar_height}")
+        if phase_length > 0:  # Prevent division by zero
+            filled_height = int((filled_years / phase_length) * bar_height)
+        else:
+            filled_height = 0
+            
+        # Draw only one row per phase
+        filled_chars = "█" * int(bar_height * (filled_years / max(1, phase_length)))
+        empty_chars = "░" * int(bar_height * (remaining / max(1, phase_length)))
+        histogram.append(f"{phase_name:12} |{filled_chars}{empty_chars}")
     return "\n".join(histogram)
 
 TEMPLATE = '''
